@@ -52,7 +52,7 @@ class Variant_prefs(AddonPreferences):
         default=True
     )
 
-    store_obj_visibilty : BoolProperty(
+    store_obj_visibility : BoolProperty(
         name="Store Objects Visibility",
         default=True
     )
