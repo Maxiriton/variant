@@ -1,24 +1,17 @@
 import bpy
-from bpy.types import Operator, PropertyGroup
-from bpy.props import BoolProperty, StringProperty, IntProperty, FloatVectorProperty
+from bpy.types import Operator
+from bpy.props import BoolProperty
+from .utils import get_addon_prefs
 
+def get_object_properties(context, obj):
+    result = {}
 
-class VariantItem(bpy.types.PropertyGroup):
-    name: bpy.props.StringProperty(name="Reference Image Name", default="Unknown")
-    blender_object_name : bpy.props.StringProperty(name="Blender object name", default="Unknown")
-    is_movie : bpy.props.BoolProperty(name="Is movie", default=False)
-    sound_channel : bpy.props.IntProperty(name="Sound Channel", min=0)
-    sound_channel_name : bpy.props.StringProperty(name="Sound Channel Name")
-    x_res : bpy.props.IntProperty(name="X Resolution in pixels")
-    y_res : bpy.props.IntProperty(name="Y Resolution in pixels")
-    opacity : bpy.props.FloatProperty(name="Global Opacity", default=1.0, min=0, max=1.0, update=OpacityUpdate)
-    distance_to_camera : bpy.props.FloatProperty(name="Distance to camera",default=1.0,min=0.1, update=ChangeDistanceToCamera)
-    color_overlay : bpy.props.FloatVectorProperty(name="Color Overlay", subtype='COLOR', default=(1, 1, 1, 1),
-            size=4,
-            min=0,
-            max=1,
-            update = ColorUpdate) 
-    previous_distance_to_camera : bpy.props.FloatProperty(name="Previous Distance to camera")
+    if get_addon_prefs().store_obj_location:
+        result['matrix_local'] = obj.matrix_local
+    if get_addon_prefs().store_obj_visibility:
+        result['hide_viewport'] = obj.hide_viewport
+        result['hide_render'] = obj.hide_render
+    return result
 
 class VA_store_scene_variant(Operator):
     bl_idname = "va.store_scene_variant"
@@ -32,7 +25,10 @@ class VA_store_scene_variant(Operator):
     )
 
     def execute(self, context):
-        print('coucou')
+        objects = context.selected_objects if self.only_selected else bpy.data.objects
+        for obj in objects:
+            properties_to_store = get_object_properties(context, obj)
+            obj['variant'] = properties_to_store
         return {"FINISHED"}
 
 ### Registration
