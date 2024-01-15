@@ -11,11 +11,11 @@ class VariantPanel(Panel):
     bl_context = "render"
 
     def draw(self, context):
-            layout = self.layout
-
-            row = layout.row()
-            row.operator("va.store_scene_variant")
-
+        layout = self.layout
+        row = layout.row()
+        row.operator("va.store_scene_variant")
+        row = layout.row()
+        row.operator("va.apply_scene_variant")
 
 ### Registration
 classes = (
