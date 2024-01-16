@@ -20,7 +20,7 @@ bl_info = {
     "name": "Variant",
     "author": "Henri Hebeisen",
     "version": (0, 0, 1),
-    "blender": (4, 0, 2),
+    "blender": (4, 0, 1),
     "location": "3D View > Properties Region > View",
     "description": "Variant Management",
     "warning": "",
@@ -30,12 +30,15 @@ bl_info = {
 
 import bpy
 from bpy.types import AddonPreferences
-from bpy.props import BoolProperty, EnumProperty
+from bpy.props import BoolProperty, EnumProperty, StringProperty
 
 from . import OP_variant_store
 from . import UI_variant_panel
 
 
+def update_func(self, context):
+    """Clean and normalize properties to store in variant"""
+    self.object_properties_to_store.strip()
 
 class Variant_prefs(AddonPreferences):
     bl_idname = __package__
@@ -47,14 +50,10 @@ class Variant_prefs(AddonPreferences):
                ),
                default='PREF')
 
-    store_obj_location : BoolProperty(
-        name="Store Objects Location",
-        default=True
-    )
-
-    store_obj_visibility : BoolProperty(
-        name="Store Objects Visibility",
-        default=True
+    object_properties_to_store : StringProperty(
+        name = "Object Properties to store", 
+        default= 'location,rotation_euler,scale,hide_viewport,hide_render',
+        update=update_func
     )
 
     def draw(self, context):
@@ -66,8 +65,7 @@ class Variant_prefs(AddonPreferences):
         if self.pref_tabs == 'PREF':
             box = layout.box()
             box.label(text='Project settings')
-            box.prop(self, "store_obj_location")
-            box.prop(self, "store_obj_visibilty")
+            box.prop(self, "object_properties_to_store")
             
         if self.pref_tabs == 'KEYS':
             box = layout.box()

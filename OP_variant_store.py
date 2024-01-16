@@ -5,12 +5,13 @@ from .utils import get_addon_prefs
 
 def get_object_properties(context, obj, variant_name):
     result = {}
-
-    if get_addon_prefs().store_obj_location:
-        result['location'] = obj.location
-    if get_addon_prefs().store_obj_visibility:
-        result['hide_viewport'] = obj.hide_viewport
-        result['hide_render'] = obj.hide_render
+    properties = get_addon_prefs().object_properties_to_store.split(',')
+    for prop in properties:
+        prop = prop.strip()
+        try : 
+            result[prop] = getattr(obj, prop)
+        except: 
+            print(f'No {prop} property for {obj.name}')
     obj[variant_name] =  result
 
 def set_object_properties(context, obj, variant_name):
@@ -33,7 +34,7 @@ class VA_store_scene_variant(Operator):
     )
 
     def execute(self, context):
-        objects = context.selected_objects if self.only_selected else bpy.context.scene.objects
+        objects = context.selected_objects if self.only_selected else bpy.data.objects
         for obj in objects:
             get_object_properties(context, obj,'variant')
         return {"FINISHED"}
