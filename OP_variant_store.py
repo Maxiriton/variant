@@ -1,6 +1,6 @@
 import bpy
-from bpy.types import Operator
-from bpy.props import BoolProperty
+from bpy.types import Operator, PropertyGroup
+from bpy.props import BoolProperty, IntProperty, CollectionProperty, StringProperty
 from .utils import get_addon_prefs
 
 def get_object_properties(context, obj, variant_name):
@@ -21,6 +21,9 @@ def set_object_properties(context, obj, variant_name):
             setattr(obj, key, value)
     except :
         print(f'Could not apply properties for {obj.name}')
+
+class VariantItem(PropertyGroup):
+    name: StringProperty(name="Variant Name", )
 
 class VA_store_scene_variant(Operator):
     bl_idname = "va.store_scene_variant"
@@ -53,13 +56,20 @@ class VA_apply_scene_variant(Operator):
 ### Registration
 classes = (
     VA_store_scene_variant,
-    VA_apply_scene_variant
+    VA_apply_scene_variant,
+    VariantItem
 )
 
 def register():
     for cl in classes:  
         bpy.utils.register_class(cl)
 
+    bpy.types.Scene.variants = CollectionProperty(type=VariantItem)
+    bpy.types.Scene.active_variant = IntProperty(default=0)
+
 def unregister():
     for cl in reversed(classes):
         bpy.utils.unregister_class(cl)
+
+    del bpy.types.Scene.active_variant
+    del bpy.types.Scene.variants
