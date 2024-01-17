@@ -13,7 +13,7 @@ class VA_UL_variantList(UIList):
             # this will also make the row easily selectable in the list! The later also enables ctrl-click rename.
             # We use icon_value of label, as our given icon is an integer value, not an enum ID.
             # Note "data" names should never be translated!
-            layout.prop(item, "blender_object_name", text="", emboss=False, icon_value=icon)
+            layout.prop(item, "name", text="", emboss=False, icon_value=icon)
 
         # 'GRID' layout type should be as compact as possible (typically a single icon!).
         elif self.layout_type == 'GRID':
