@@ -101,6 +101,8 @@ class VA_store_scene_variant(Operator):
         new_var = context.scene.variants.add()
         new_var.name = f"Variant_{len(context.scene.variants)}"
         new_var.uuid = variant_UUID
+
+        context.scene.active_variant = len(context.scene.variants) -1 
         return {"FINISHED"}
 
 class VA_apply_scene_variant(Operator):
@@ -121,11 +123,40 @@ class VA_apply_scene_variant(Operator):
             if obj.type == 'CAMERA':
                 set_camera_properties(context, obj, active_var.uuid)
         return {"FINISHED"}
+    
+class VA_remove_variant(Operator):
+    """Remove a variant from the scene"""
+    bl_idname = "va.remove_variant"
+    bl_label = "Remove Variant"
+    bl_options = {'REGISTER','UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return len(context.scene.variants) > 0
+
+    def execute(self, context):
+        print('on est la ')
+        index_to_remove = context.scene.active_variant
+        active_var = context.scene.variants[context.scene.active_variant]
+        for obj in bpy.data.objects:
+            try:
+                del obj[active_var.uuid]
+            except :
+                print(f'Could not delete variant  for {obj.name}')
+
+        context.scene.variants.remove(index_to_remove)
+        if index_to_remove == len(context.scene.variants):
+            context.scene.active_variant = index_to_remove -1 
+        else:
+            context.scene.active_variant = index_to_remove
+
+        return {'FINISHED'}
 
 ### Registration
 classes = (
     VA_store_scene_variant,
     VA_apply_scene_variant,
+    VA_remove_variant,
     VariantItem
 )
 
