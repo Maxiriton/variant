@@ -56,6 +56,11 @@ class Variant_prefs(AddonPreferences):
         update=update_func
     )
 
+    camera_properties_to_store : StringProperty(
+        name = "Camera Properties to store",
+        default="type,ortho_scale,lens,lens_unit,shift_x,shift_y,clip_start,clip_end"
+    )
+
     def draw(self, context):
         layout = self.layout
 
@@ -66,6 +71,7 @@ class Variant_prefs(AddonPreferences):
             box = layout.box()
             box.label(text='Project settings')
             box.prop(self, "object_properties_to_store")
+            box.prop(self, "camera_properties_to_store")
             
         if self.pref_tabs == 'KEYS':
             box = layout.box()

@@ -6,6 +6,7 @@ from .utils import get_addon_prefs
 
 PROPS = 'props'
 MATS = 'mats'
+CAMERA = 'camera'
 
 def get_object_properties(context, obj):
     result = {}
@@ -16,6 +17,17 @@ def get_object_properties(context, obj):
             result[prop] = getattr(obj, prop)
         except:
             print(f'No {prop} property for {obj.name}')
+    return result
+
+def get_camera_properties(context, cam_data):
+    result = {}
+    properties = get_addon_prefs().camera_properties_to_store.split(',')
+    for prop in properties:
+        prop = prop.strip()
+        try :
+            result[prop] = getattr(cam_data, prop)
+        except:
+            print(f'No {prop} camera property for {cam_data.name}')
     return result
 
 def get_object_materials(context, obj):
@@ -33,6 +45,7 @@ def set_object_properties(context, obj, variant_uuid):
     except :
         print(f'Could not apply properties for {obj.name}')
 
+
 def set_object_materials(context, obj, variant_uuid):
     try:
         stored_properties = obj[variant_uuid]
@@ -44,6 +57,18 @@ def set_object_materials(context, obj, variant_uuid):
     
     for index, material_name in enumerate(stored_properties[MATS]):
         obj.material_slots[index].material = bpy.data.materials[material_name]
+
+def set_camera_properties(context, cam_obj, variant_uuid):
+    try:
+        stored_properties = cam_obj[variant_uuid]
+    except :
+        print(f'Could not retrieve camera properties for {cam_obj.name}')
+        return None
+    if CAMERA not in stored_properties:
+        return None
+    
+    for key, value in stored_properties[CAMERA].items():
+        setattr(cam_obj.data, key, value)
 
 class VariantItem(PropertyGroup):
     name: StringProperty(name="Variant Name", )
@@ -68,6 +93,8 @@ class VA_store_scene_variant(Operator):
             all = {}
             all[PROPS] = get_object_properties(context, obj)
             all[MATS] = get_object_materials(context, obj)
+            if obj.type == 'CAMERA':
+                all[CAMERA] = get_camera_properties(context, obj.data)
 
             obj[variant_UUID] =  all
 
@@ -91,6 +118,8 @@ class VA_apply_scene_variant(Operator):
         for obj in bpy.data.objects:
             set_object_properties(context, obj, active_var.uuid)
             set_object_materials(context, obj, active_var.uuid)
+            if obj.type == 'CAMERA':
+                set_camera_properties(context, obj, active_var.uuid)
         return {"FINISHED"}
 
 ### Registration
