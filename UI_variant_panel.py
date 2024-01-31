@@ -6,14 +6,14 @@ class VA_UL_variantList(UIList):
     """List of variant stored in scene """
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         ob = data
-
+        custom_icon = item.icon
         # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             # You should always start your row layout by a label (icon + text), or a non-embossed text field,
             # this will also make the row easily selectable in the list! The later also enables ctrl-click rename.
             # We use icon_value of label, as our given icon is an integer value, not an enum ID.
             # Note "data" names should never be translated!
-            layout.prop(item, "name", text="", emboss=False, icon_value=icon)
+            layout.prop(item, "name", text="", emboss=False, icon_value=custom_icon)
 
         # 'GRID' layout type should be as compact as possible (typically a single icon!).
         elif self.layout_type == 'GRID':

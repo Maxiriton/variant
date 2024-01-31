@@ -8,6 +8,9 @@ PROPS = 'props'
 MATS = 'mats'
 CAMERA = 'camera'
 
+SELECT_SET = 341
+SCENE_DATA = 137
+
 def get_object_properties(context, obj):
     result = {}
     properties = get_addon_prefs().object_properties_to_store.split(',')
@@ -73,6 +76,7 @@ def set_camera_properties(context, cam_obj, variant_uuid):
 class VariantItem(PropertyGroup):
     name: StringProperty(name="Variant Name", )
     uuid : StringProperty(name="Variant UUID")
+    icon : IntProperty(name="Variant Icon")
 
 class VA_store_scene_variant(Operator):
     bl_idname = "va.store_scene_variant"
@@ -101,6 +105,7 @@ class VA_store_scene_variant(Operator):
         new_var = context.scene.variants.add()
         new_var.name = f"Variant_{len(context.scene.variants)}"
         new_var.uuid = variant_UUID
+        new_var.icon = SELECT_SET if self.only_selected else SCENE_DATA
 
         context.scene.active_variant = len(context.scene.variants) -1 
         return {"FINISHED"}
