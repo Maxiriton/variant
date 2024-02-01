@@ -61,6 +61,11 @@ class Variant_prefs(AddonPreferences):
         default="type,ortho_scale,lens,lens_unit,shift_x,shift_y,clip_start,clip_end"
     )
 
+    render_properties_to_store : StringProperty(
+        name = "Render Properties to store", 
+        default="resolution_x,resolution_y"
+    )
+
     def draw(self, context):
         layout = self.layout
 

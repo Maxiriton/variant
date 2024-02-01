@@ -35,9 +35,17 @@ class VariantPanel(Panel):
         row = layout.row()
         row.operator("va.store_scene_variant")
         row = layout.row()
-        row.operator("va.apply_scene_variant")
-        row = layout.row()
         row.template_list("VA_UL_variantList", "", scene, "variants", scene, "active_variant")
+
+        col = layout.column(align=True)
+        row = col.row(align=True)
+    
+        button  = row.operator("va.apply_scene_variant", text="Previous Variant",icon='PREV_KEYFRAME')
+        button.prev_next = -1
+        row.operator("va.apply_scene_variant")
+        button = row.operator("va.apply_scene_variant", text="Next Variant",icon='NEXT_KEYFRAME')
+        button.prev_next = 1
+
 
 ### Registration
 classes = (

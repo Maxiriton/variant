@@ -116,11 +116,25 @@ class VA_apply_scene_variant(Operator):
     bl_description = "Apply active variant"
     bl_options = {'REGISTER', 'UNDO'}
 
+    prev_next : IntProperty(
+        name="Previous, Current, Next",
+        description="-1 for previous, 0 for current, 1 for next",
+        default=0,
+        min=-1,
+        max=1
+    )
+
     @classmethod
     def poll(cls, context):
         return  len(context.scene.variants) > 0
 
     def execute(self, context):
+        if self.prev_next == -1 and context.scene.active_variant > 0:
+            context.scene.active_variant -=1
+        elif self.prev_next == 1 and context.scene.active_variant < len(context.scene.variants) -1: 
+            context.scene.active_variant +=1
+
+
         active_var = context.scene.variants[context.scene.active_variant]
         for obj in bpy.data.objects:
             set_object_properties(context, obj, active_var.uuid)
@@ -128,6 +142,7 @@ class VA_apply_scene_variant(Operator):
             if obj.type == 'CAMERA':
                 set_camera_properties(context, obj, active_var.uuid)
         return {"FINISHED"}
+    
     
 class VA_remove_variant(Operator):
     """Remove a variant from the scene"""
