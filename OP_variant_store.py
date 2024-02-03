@@ -36,23 +36,11 @@ def get_actual_property(base_data, str_prop):
                 return None
             
 
-def get_object_properties(context, obj):
+def store_properties(context, obj, properties):
     result = {}
-    properties = get_addon_prefs().object_properties_to_store.split(',')
-    for prop in properties:
-        prop = prop.strip()
-        try :
-            result[prop] = getattr(obj, prop)
-        except:
-            print(f'No {prop} property for {obj.name}')
-    return result
-
-def get_camera_properties(context, cam_data):
-    result = {}
-    properties = get_addon_prefs().camera_properties_to_store.split(',')
     for prop in properties:
         prop = prop.strip() #sanity check
-        prop_value = get_actual_property(cam_data, prop)
+        prop_value = get_actual_property(obj, prop)
         if prop_value:
             result[prop] = prop_value
     return result
@@ -121,12 +109,15 @@ class VA_store_scene_variant(Operator):
         objects = context.selected_objects if self.only_selected else context.scene.objects
         variant_UUID = str(uuid.uuid4())
 
+        object_props_to_store = get_addon_prefs().object_properties_to_store.split(',')
+        camera_props_to_store = get_addon_prefs().camera_properties_to_store.split(',')
+
         for obj in objects:
             all = {}
-            all[PROPS] = get_object_properties(context, obj)
+            all[PROPS] = store_properties(context, obj, object_props_to_store)
             all[MATS] = get_object_materials(context, obj)
             if obj.type == 'CAMERA':
-                all[CAMERA] = get_camera_properties(context, obj.data)
+                all[CAMERA] = store_properties(context, obj.data, camera_props_to_store)
 
             obj[variant_UUID] =  all
 
@@ -188,7 +179,6 @@ class VA_remove_variant(Operator):
         return len(context.scene.variants) > 0
 
     def execute(self, context):
-        print('on est la ')
         index_to_remove = context.scene.active_variant
         active_var = context.scene.variants[context.scene.active_variant]
         for obj in bpy.data.objects:
