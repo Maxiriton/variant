@@ -30,10 +30,23 @@ def get_actual_property(base_data, str_prop):
         else:
             try:
                 value = getattr(cur_data, cur_lvl_prop)
-                print(value)
                 cur_data = value
             except:
                 return None
+            
+def set_actual_property(base_data, str_prop, value):
+    subprops = str_prop.split('.')
+    cur_data = base_data
+    for index, cur_lvl_prop in enumerate(subprops):
+        if index == len(subprops) -1:
+            setattr(cur_data, cur_lvl_prop, value)
+        else:
+            try:
+                next_data = getattr(cur_data, cur_lvl_prop)
+                cur_data = next_data
+            except:
+                return None
+            
             
 
 def store_properties(context, obj, properties):
@@ -41,9 +54,17 @@ def store_properties(context, obj, properties):
     for prop in properties:
         prop = prop.strip() #sanity check
         prop_value = get_actual_property(obj, prop)
-        if prop_value:
+        if prop_value is not None:
             result[prop] = prop_value
     return result
+
+
+def apply_properties(context, obj,stored_properties, property_type, variant_uuid):
+    if property_type not  in stored_properties:
+        return None
+    
+    for key, value in stored_properties[property_type].items():
+        set_actual_property(obj, key, value)
 
 def get_object_materials(context, obj):
     result = []
@@ -51,39 +72,16 @@ def get_object_materials(context, obj):
         result.append(mat.name)
     return result
 
-def set_object_properties(context, obj, variant_uuid):
-    try:
-        stored_properties = obj[variant_uuid]
-        if PROPS in stored_properties:
-            for key, value in stored_properties[PROPS].items():
-                setattr(obj, key, value)
-    except :
-        print(f'Could not apply properties for {obj.name}')
-
-
 def set_object_materials(context, obj, variant_uuid):
     try:
         stored_properties = obj[variant_uuid]
     except :
-        print(f'Could not apply materials for {obj.name}')
         return None
     if MATS not in stored_properties:
         return None
     
     for index, material_name in enumerate(stored_properties[MATS]):
         obj.material_slots[index].material = bpy.data.materials[material_name]
-
-def set_camera_properties(context, cam_obj, variant_uuid):
-    try:
-        stored_properties = cam_obj[variant_uuid]
-    except :
-        print(f'Could not retrieve camera properties for {cam_obj.name}')
-        return None
-    if CAMERA not in stored_properties:
-        return None
-    
-    for key, value in stored_properties[CAMERA].items():
-        setattr(cam_obj.data, key, value)
 
 class VariantItem(PropertyGroup):
     name: StringProperty(name="Variant Name", )
@@ -126,13 +124,21 @@ class VA_store_scene_variant(Operator):
         new_var.uuid = variant_UUID
         new_var.icon = SELECT_SET if self.only_selected else SCENE_DATA
         new_var.scope = SELECTION if self.only_selected else SCENE
-        if self.only_selected:
-            new_var.objects = str([obj.name for obj in objects])
-            print(new_var.objects)
+        new_var.objects = str([obj.name for obj in objects])
 
         context.scene.active_variant = len(context.scene.variants) -1 
         self.report({"INFO"},f"New variant created in {time() - start_time:.3}s")
         return {"FINISHED"}
+
+def get_objects_in_variant(string_list):
+    names = string_list.strip("[]").split(', ')
+    result = []
+    for name in names:
+        try:
+            result.append(bpy.data.objects[name.strip("'")])
+        except:
+            continue
+    return result
 
 class VA_apply_scene_variant(Operator):
     bl_idname = "va.apply_scene_variant"
@@ -158,13 +164,17 @@ class VA_apply_scene_variant(Operator):
         elif self.prev_next == 1 and context.scene.active_variant < len(context.scene.variants) -1: 
             context.scene.active_variant +=1
 
-
         active_var = context.scene.variants[context.scene.active_variant]
-        for obj in bpy.data.objects:
-            set_object_properties(context, obj, active_var.uuid)
+
+        for obj in get_objects_in_variant(active_var.objects):
+            try:
+                stored_properties = obj[active_var.uuid]
+            except:
+                continue
+            apply_properties(context, obj, stored_properties, PROPS, active_var.uuid)
             set_object_materials(context, obj, active_var.uuid)
             if obj.type == 'CAMERA':
-                set_camera_properties(context, obj, active_var.uuid)
+                apply_properties(context, obj.data,stored_properties, CAMERA, active_var.uuid)
         return {"FINISHED"}
     
     
@@ -181,11 +191,11 @@ class VA_remove_variant(Operator):
     def execute(self, context):
         index_to_remove = context.scene.active_variant
         active_var = context.scene.variants[context.scene.active_variant]
-        for obj in bpy.data.objects:
+        for obj in get_objects_in_variant(active_var.objects):
             try:
                 del obj[active_var.uuid]
             except :
-                print(f'Could not delete variant  for {obj.name}')
+                continue
 
         context.scene.variants.remove(index_to_remove)
         if index_to_remove == len(context.scene.variants):
