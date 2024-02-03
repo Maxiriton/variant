@@ -58,7 +58,7 @@ class Variant_prefs(AddonPreferences):
 
     camera_properties_to_store : StringProperty(
         name = "Camera Properties to store",
-        default="type,ortho_scale,lens,lens_unit,shift_x,shift_y,clip_start,clip_end"
+        default="type,ortho_scale,lens,lens_unit,shift_x,shift_y,clip_start,clip_end,sensor_fit,sensor_width,sensor_height,dof.use_dof"
     )
 
     render_properties_to_store : StringProperty(
