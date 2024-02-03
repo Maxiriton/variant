@@ -32,8 +32,12 @@ class VariantPanel(Panel):
     def draw(self, context):
         scene = context.scene
         layout = self.layout
-        row = layout.row()
-        row.operator("va.store_scene_variant")
+        col = layout.column(align=True)
+        row = col.row(align=True)
+        button = row.operator("va.store_scene_variant")
+        button.only_selected = False
+        button = row.operator("va.store_scene_variant", text="Store Current Selection")
+        button.only_selected = True
         row = layout.row()
         row.template_list("VA_UL_variantList", "", scene, "variants", scene, "active_variant")
 
@@ -42,7 +46,8 @@ class VariantPanel(Panel):
     
         button  = row.operator("va.apply_scene_variant", text="Previous Variant",icon='PREV_KEYFRAME')
         button.prev_next = -1
-        row.operator("va.apply_scene_variant")
+        button = row.operator("va.apply_scene_variant")
+        button.prev_next = 0
         button = row.operator("va.apply_scene_variant", text="Next Variant",icon='NEXT_KEYFRAME')
         button.prev_next = 1
 
