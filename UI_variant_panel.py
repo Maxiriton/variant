@@ -39,7 +39,12 @@ class VariantPanel(Panel):
         button = row.operator("va.store_scene_variant", text="Store Current Selection")
         button.only_selected = True
         row = layout.row()
-        row.template_list("VA_UL_variantList", "", scene, "variants", scene, "active_variant")
+        split = row.split(factor=0.9)
+        c = split.column()
+        c.template_list("VA_UL_variantList", "", scene, "variants", scene, "active_variant")
+
+        c = split.column()
+        c.operator("va.remove_variant", text="", icon="CANCEL")
 
         col = layout.column(align=True)
         row = col.row(align=True)
