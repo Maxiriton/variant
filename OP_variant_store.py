@@ -1,4 +1,5 @@
 import uuid
+from time import time
 import bpy
 from bpy.types import Operator, PropertyGroup
 from bpy.props import BoolProperty, IntProperty, CollectionProperty, StringProperty
@@ -10,6 +11,30 @@ CAMERA = 'camera'
 
 SELECT_SET = 341
 SCENE_DATA = 137
+
+SELECTION = "selection"
+SCENE = "scene"
+
+def get_actual_property(base_data, str_prop):
+    ''' Utility to get the prop from a string property path
+    this allow to store property from a given path like 'dof.use_dof' '''
+    subprops = str_prop.split('.')
+    cur_data = base_data
+    for index, cur_lvl_prop in enumerate(subprops):
+        if index == len(subprops) -1:
+            try:
+                value = getattr(cur_data, cur_lvl_prop)
+                return value
+            except:
+                return None
+        else:
+            try:
+                value = getattr(cur_data, cur_lvl_prop)
+                print(value)
+                cur_data = value
+            except:
+                return None
+            
 
 def get_object_properties(context, obj):
     result = {}
@@ -26,11 +51,10 @@ def get_camera_properties(context, cam_data):
     result = {}
     properties = get_addon_prefs().camera_properties_to_store.split(',')
     for prop in properties:
-        prop = prop.strip()
-        try :
-            result[prop] = getattr(cam_data, prop)
-        except:
-            print(f'No {prop} camera property for {cam_data.name}')
+        prop = prop.strip() #sanity check
+        prop_value = get_actual_property(cam_data, prop)
+        if prop_value:
+            result[prop] = prop_value
     return result
 
 def get_object_materials(context, obj):
@@ -77,6 +101,9 @@ class VariantItem(PropertyGroup):
     name: StringProperty(name="Variant Name", )
     uuid : StringProperty(name="Variant UUID")
     icon : IntProperty(name="Variant Icon")
+    scope : StringProperty(name="Scope",default=SCENE)
+    objects : StringProperty(name="Objects", description="Objects that are in this variant, if empty it means the whole scene", default="[]")
+
 
 class VA_store_scene_variant(Operator):
     bl_idname = "va.store_scene_variant"
@@ -90,6 +117,7 @@ class VA_store_scene_variant(Operator):
     )
 
     def execute(self, context):
+        start_time = time()
         objects = context.selected_objects if self.only_selected else context.scene.objects
         variant_UUID = str(uuid.uuid4())
 
@@ -106,8 +134,13 @@ class VA_store_scene_variant(Operator):
         new_var.name = f"Variant_{len(context.scene.variants)}"
         new_var.uuid = variant_UUID
         new_var.icon = SELECT_SET if self.only_selected else SCENE_DATA
+        new_var.scope = SELECTION if self.only_selected else SCENE
+        if self.only_selected:
+            new_var.objects = str([obj.name for obj in objects])
+            print(new_var.objects)
 
         context.scene.active_variant = len(context.scene.variants) -1 
+        self.report({"INFO"},f"New variant created in {time() - start_time:.3}s")
         return {"FINISHED"}
 
 class VA_apply_scene_variant(Operator):
