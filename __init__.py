@@ -58,12 +58,26 @@ class Variant_prefs(AddonPreferences):
 
     camera_properties_to_store : StringProperty(
         name = "Camera Properties to store",
-        default="type,ortho_scale,lens,lens_unit,shift_x,shift_y,clip_start,clip_end,sensor_fit,sensor_width,sensor_height,dof.use_dof"
-    )
+        default="type,\
+ortho_scale,\
+lens,\
+lens_unit,\
+shift_x,\
+shift_y,\
+clip_start,\
+clip_end,\
+sensor_fit,\
+sensor_width,\
+sensor_height,\
+dof.use_dof,dof.focus_distance,\
+dof.aperture_fstop,\
+dof.aperture_blades,\
+dof.aperture_rotation,\
+dof.aperture_ratio")
 
     render_properties_to_store : StringProperty(
         name = "Render Properties to store", 
-        default="resolution_x,resolution_y"
+        default="render.resolution_x,render.resolution_y"
     )
 
     def draw(self, context):
@@ -77,7 +91,7 @@ class Variant_prefs(AddonPreferences):
             box.label(text='Project settings')
             box.prop(self, "object_properties_to_store")
             box.prop(self, "camera_properties_to_store")
-            
+            box.prop(self, "render_properties_to_store")
         if self.pref_tabs == 'KEYS':
             box = layout.box()
             box.label(text='Shortcuts added by 3.0 Tools with context scope:')

@@ -54,17 +54,15 @@ def store_properties(context, obj, properties):
     for prop in properties:
         prop = prop.strip() #sanity check
         prop_value = get_actual_property(obj, prop)
+        print(f"{obj} - {prop} - {prop_value}")
         if prop_value is not None:
             result[prop] = prop_value
     return result
 
 
-def apply_properties(context, obj,stored_properties, property_type, variant_uuid):
-    if property_type not  in stored_properties:
-        return None
-    
-    for key, value in stored_properties[property_type].items():
-        set_actual_property(obj, key, value)
+def apply_properties(context, datablock,stored_properties):   
+    for key, value in stored_properties.items():
+        set_actual_property(datablock, key, value)
 
 def get_object_materials(context, obj):
     result = []
@@ -100,7 +98,7 @@ class VA_store_scene_variant(Operator):
     only_selected : BoolProperty(
         name="Store Variant only for selected objects",
         default=False
-    )
+    ) # type: ignore
 
     def execute(self, context):
         start_time = time()
@@ -118,6 +116,9 @@ class VA_store_scene_variant(Operator):
                 all[CAMERA] = store_properties(context, obj.data, camera_props_to_store)
 
             obj[variant_UUID] =  all
+
+        render_props_to_store = get_addon_prefs().render_properties_to_store.split(',')
+        context.scene[variant_UUID] = store_properties(context, context.scene, render_props_to_store)
 
         new_var = context.scene.variants.add()
         new_var.name = f"Variant_{len(context.scene.variants)}"
@@ -171,10 +172,18 @@ class VA_apply_scene_variant(Operator):
                 stored_properties = obj[active_var.uuid]
             except:
                 continue
-            apply_properties(context, obj, stored_properties, PROPS, active_var.uuid)
+            if PROPS in stored_properties.keys(): 
+                apply_properties(context, obj, stored_properties[PROPS])
+            if CAMERA in stored_properties.keys(): 
+                apply_properties(context, obj.data, stored_properties[CAMERA])
             set_object_materials(context, obj, active_var.uuid)
-            if obj.type == 'CAMERA':
-                apply_properties(context, obj.data,stored_properties, CAMERA, active_var.uuid)
+
+
+        try: 
+            stored_properties  = context.scene[active_var.uuid]
+        except:
+            pass
+        apply_properties(context, context.scene, stored_properties )
         return {"FINISHED"}
     
     
