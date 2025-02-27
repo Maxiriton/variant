@@ -17,6 +17,8 @@ SCENE_DATA = 137
 SELECTION = "selection"
 SCENE = "scene"
 
+PROPS_IGNORE_LIST = ['__doc__','__module__','__slots__','bl_rna','rna_type','execution_time','is_override_data','persistent_uid','type']
+
 def get_actual_property(base_data, str_prop):
     ''' Utility to get the prop from a string property path
     this allow to store property from a given path like 'dof.use_dof' '''
@@ -80,18 +82,29 @@ def get_object_materials(context, obj):
 def get_modifier_stack_params(context, obj):
     result = {}
     for modifier in obj.modifiers:
-        print(modifier.name)
+        props = {}
+        for attr in dir(modifier):
+            if attr in PROPS_IGNORE_LIST:
+                continue
+            prop = get_actual_property(modifier, attr)
+            props[attr] = prop
+        if modifier.type == 'NODES':
+            #TODO add inputs for GEO NODES
+            continue
+        result[modifier.name] = props
+    print(result)
     return result
 
-def set_object_materials(context, obj, variant_uuid):
-    try:
-        stored_properties = obj[variant_uuid]
-    except :
-        return None
-    if MATS not in stored_properties:
-        return None
-    
-    for index, material_name in enumerate(stored_properties[MATS]):
+def set_modifier_stack_parameters(obj, param_dict):
+    for mod_name, dict in param_dict.items():
+        mod = obj.modifiers.get(mod_name)
+        if not mod:
+            continue
+        for key, value in dict.items():
+            set_actual_property(mod, key, value)
+
+def set_object_materials(obj, stored_mats_list):
+    for index, material_name in enumerate(stored_mats_list):
         obj.material_slots[index].material = bpy.data.materials[material_name]
 
 class VariantItem(PropertyGroup):
@@ -125,12 +138,14 @@ class VA_store_scene_variant(Operator):
         for obj in objects:
             all = {}
             all[PROPS] = store_properties(context, obj, object_props_to_store)
-            all[MATS] = get_object_materials(context, obj)
             if obj.type == 'CAMERA':
                 all[CAMERA] = store_properties(context, obj.data, camera_props_to_store)
             elif obj.type == 'LIGHT':
+                #TODO apply the light type first as it seems it doesn't apply to properties otherwise
                 all[LIGHT] = store_properties(context, obj.data, light_props_to_store)
-            all[MODIFIERS] = get_modifier_stack_params(context, obj)
+            if obj.type in ['MESH','CURVE','SURFACE','FONT','META']:
+                all[MATS] = get_object_materials(context, obj)
+                all[MODIFIERS] = get_modifier_stack_params(context, obj)
             obj[variant_UUID] =  all
 
         render_props_to_store = get_addon_prefs().render_properties_to_store.split(',')
@@ -188,20 +203,24 @@ class VA_apply_scene_variant(Operator):
                 stored_properties = obj[active_var.uuid]
             except:
                 continue
-            if PROPS in stored_properties.keys(): 
-                apply_properties(context, obj, stored_properties[PROPS])
-            if CAMERA in stored_properties.keys(): 
-                apply_properties(context, obj.data, stored_properties[CAMERA])
-            if LIGHT in stored_properties.keys():
-                apply_properties(context,obj.data, stored_properties[LIGHT])
-            set_object_materials(context, obj, active_var.uuid)
 
-
+            for key in stored_properties.keys():
+                if key == PROPS:
+                    apply_properties(context, obj, stored_properties[PROPS])
+                elif key == CAMERA:
+                    apply_properties(context, obj.data, stored_properties[CAMERA])
+                elif key == LIGHT:
+                    apply_properties(context,obj.data, stored_properties[LIGHT])
+                elif key == MODIFIERS:
+                    set_modifier_stack_parameters(obj, stored_properties[MODIFIERS])
+                elif key == MATS:
+                    set_object_materials(obj, stored_properties[MATS])
+                
         try: 
-            stored_properties  = context.scene[active_var.uuid]
+            stored_scene_properties  = context.scene[active_var.uuid]
+            apply_properties(context, context.scene, stored_scene_properties )
         except:
             pass
-        apply_properties(context, context.scene, stored_properties )
         return {"FINISHED"}
     
     
