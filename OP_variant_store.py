@@ -8,6 +8,8 @@ from .utils import get_addon_prefs
 PROPS = 'props'
 MATS = 'mats'
 CAMERA = 'camera'
+MODIFIERS = 'modifiers'
+LIGHT = 'light'
 
 SELECT_SET = 341
 SCENE_DATA = 137
@@ -34,18 +36,23 @@ def get_actual_property(base_data, str_prop):
             except:
                 return None
             
-def set_actual_property(base_data, str_prop, value):
+def set_actual_property(base_data, str_prop, value,refresh_scene=False):
     subprops = str_prop.split('.')
     cur_data = base_data
     for index, cur_lvl_prop in enumerate(subprops):
         if index == len(subprops) -1:
-            setattr(cur_data, cur_lvl_prop, value)
+            try:
+                setattr(cur_data, cur_lvl_prop, value)
+            except:
+                print(f"Error while setting attribute {str_prop} - {value}")
         else:
             try:
                 next_data = getattr(cur_data, cur_lvl_prop)
                 cur_data = next_data
             except:
                 return None
+    if refresh_scene:
+        bpy.context.view_layer.update()
             
             
 
@@ -54,7 +61,7 @@ def store_properties(context, obj, properties):
     for prop in properties:
         prop = prop.strip() #sanity check
         prop_value = get_actual_property(obj, prop)
-        print(f"{obj} - {prop} - {prop_value}")
+        # print(f"{obj} - {prop} - {prop_value}")
         if prop_value is not None:
             result[prop] = prop_value
     return result
@@ -68,6 +75,12 @@ def get_object_materials(context, obj):
     result = []
     for mat in obj.material_slots:
         result.append(mat.name)
+    return result
+
+def get_modifier_stack_params(context, obj):
+    result = {}
+    for modifier in obj.modifiers:
+        print(modifier.name)
     return result
 
 def set_object_materials(context, obj, variant_uuid):
@@ -107,6 +120,7 @@ class VA_store_scene_variant(Operator):
 
         object_props_to_store = get_addon_prefs().object_properties_to_store.split(',')
         camera_props_to_store = get_addon_prefs().camera_properties_to_store.split(',')
+        light_props_to_store = get_addon_prefs().light_properties_to_store.split(',')
 
         for obj in objects:
             all = {}
@@ -114,7 +128,9 @@ class VA_store_scene_variant(Operator):
             all[MATS] = get_object_materials(context, obj)
             if obj.type == 'CAMERA':
                 all[CAMERA] = store_properties(context, obj.data, camera_props_to_store)
-
+            elif obj.type == 'LIGHT':
+                all[LIGHT] = store_properties(context, obj.data, light_props_to_store)
+            all[MODIFIERS] = get_modifier_stack_params(context, obj)
             obj[variant_UUID] =  all
 
         render_props_to_store = get_addon_prefs().render_properties_to_store.split(',')
@@ -176,6 +192,8 @@ class VA_apply_scene_variant(Operator):
                 apply_properties(context, obj, stored_properties[PROPS])
             if CAMERA in stored_properties.keys(): 
                 apply_properties(context, obj.data, stored_properties[CAMERA])
+            if LIGHT in stored_properties.keys():
+                apply_properties(context,obj.data, stored_properties[LIGHT])
             set_object_materials(context, obj, active_var.uuid)
 
 
