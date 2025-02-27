@@ -80,6 +80,11 @@ dof.aperture_ratio")
         default="render.resolution_x,render.resolution_y"
     )
 
+    light_properties_to_store : StringProperty(
+        name= "Light properties to store",
+        default="type,color,energy,use_soft_falloff,shadow_soft_size,size_y,shape,spread"
+    )
+
     def draw(self, context):
         layout = self.layout
 
