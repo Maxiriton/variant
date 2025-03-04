@@ -17,7 +17,7 @@ SCENE_DATA = 137
 SELECTION = "selection"
 SCENE = "scene"
 
-PROPS_IGNORE_LIST = ['__doc__','__module__','__slots__','bl_rna','rna_type','execution_time','is_override_data','persistent_uid']
+PROPS_IGNORE_LIST = ['__doc__','__module__','__slots__','bl_rna','rna_type','execution_time','is_override_data','persistent_uid','custom_profile','debug_options']
 TYPES_IGNORE_LIST = [NodeTreeInterfaceSocketGeometry, NodeTreeInterfacePanel, NodeTreeInterfaceSocketMatrix]
 
 
@@ -90,11 +90,7 @@ def get_modifier_stack_params(context, obj):
             for input in modifier.node_group.interface.items_tree:
                 if type(input) in TYPES_IGNORE_LIST:
                     continue
-                value =  modifier[input.identifier]
-                #Special case for object and Collection, we only store the name.
-                # if type(value) in [bpy.types.Object, bpy.types.Collection]:
-                #     value = value.name
-                props[input.identifier] = value
+                props[input.identifier] = modifier[input.identifier]
         else:
             for attr in dir(modifier):
                 if attr in PROPS_IGNORE_LIST:
@@ -205,6 +201,7 @@ class VA_apply_scene_variant(Operator):
         return  len(context.scene.variants) > 0
 
     def execute(self, context):
+        start_time = time()
         if self.prev_next == -1 and context.scene.active_variant > 0:
             context.scene.active_variant -=1
         elif self.prev_next == 1 and context.scene.active_variant < len(context.scene.variants) -1: 
@@ -235,6 +232,7 @@ class VA_apply_scene_variant(Operator):
             apply_properties(context, context.scene, stored_scene_properties )
         except:
             pass
+        self.report({"INFO"},f"Cariant applied in {time() - start_time:.3}s")
         return {"FINISHED"}
     
     
