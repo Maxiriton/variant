@@ -1,7 +1,7 @@
 import uuid
 from time import time
 import bpy
-from bpy.types import Operator, PropertyGroup
+from bpy.types import Operator, PropertyGroup, NodeTreeInterfaceSocketGeometry, NodeTreeInterfacePanel, NodeTreeInterfaceSocketMatrix
 from bpy.props import BoolProperty, IntProperty, CollectionProperty, StringProperty
 from .utils import get_addon_prefs
 
@@ -17,7 +17,9 @@ SCENE_DATA = 137
 SELECTION = "selection"
 SCENE = "scene"
 
-PROPS_IGNORE_LIST = ['__doc__','__module__','__slots__','bl_rna','rna_type','execution_time','is_override_data','persistent_uid','type']
+PROPS_IGNORE_LIST = ['__doc__','__module__','__slots__','bl_rna','rna_type','execution_time','is_override_data','persistent_uid']
+TYPES_IGNORE_LIST = [NodeTreeInterfaceSocketGeometry, NodeTreeInterfacePanel, NodeTreeInterfaceSocketMatrix]
+
 
 def get_actual_property(base_data, str_prop):
     ''' Utility to get the prop from a string property path
@@ -55,8 +57,9 @@ def set_actual_property(base_data, str_prop, value,refresh_scene=False):
                 return None
     if refresh_scene:
         bpy.context.view_layer.update()
-            
-            
+
+def set_geo_nodes_input_property(modifier, identifier, value):
+    modifier[identifier] = value 
 
 def store_properties(context, obj, properties):
     result = {}
@@ -83,16 +86,23 @@ def get_modifier_stack_params(context, obj):
     result = {}
     for modifier in obj.modifiers:
         props = {}
-        for attr in dir(modifier):
-            if attr in PROPS_IGNORE_LIST:
-                continue
-            prop = get_actual_property(modifier, attr)
-            props[attr] = prop
         if modifier.type == 'NODES':
-            #TODO add inputs for GEO NODES
-            continue
+            for input in modifier.node_group.interface.items_tree:
+                if type(input) in TYPES_IGNORE_LIST:
+                    continue
+                value =  modifier[input.identifier]
+                #Special case for object and Collection, we only store the name.
+                # if type(value) in [bpy.types.Object, bpy.types.Collection]:
+                #     value = value.name
+                props[input.identifier] = value
+        else:
+            for attr in dir(modifier):
+                if attr in PROPS_IGNORE_LIST:
+                    continue
+                prop = get_actual_property(modifier, attr)
+                props[attr] = prop
         result[modifier.name] = props
-    print(result)
+        # print(result)
     return result
 
 def set_modifier_stack_parameters(obj, param_dict):
@@ -100,8 +110,12 @@ def set_modifier_stack_parameters(obj, param_dict):
         mod = obj.modifiers.get(mod_name)
         if not mod:
             continue
-        for key, value in dict.items():
-            set_actual_property(mod, key, value)
+        if mod.type == 'NODES':
+            for key, value in dict.items():
+                set_geo_nodes_input_property(mod, key, value)
+        else:
+            for key, value in dict.items():
+                set_actual_property(mod, key, value)
 
 def set_object_materials(obj, stored_mats_list):
     for index, material_name in enumerate(stored_mats_list):
